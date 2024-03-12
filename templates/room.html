@@ -1,0 +1,165 @@
+{% extends 'base.html' %} {% block content %}
+<!-- <div class="message-box"> -->
+<div class="">
+  <h2>Your Name : {{name}}</h2>
+  <h2>Chat Room: {{code}}</h2>
+  <section class="display">
+    <span class="display-player playerX" id="turn"></span>
+  </section>
+  <main class="background">
+    <section class="title">
+        <h1>Tic Tac Toe</h1>
+    </section>
+    <!-- <section class="display">
+        Player <span class="display-player playerX">X</span>'s turn
+    </section> -->
+    <section class="container">
+        <div class="tile" name="cell-00" id="cell-00" onClick="sendMessage(this.id)" ></div>
+        <div class="tile" name="cell-01" id="cell-01" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-02" id="cell-02" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-10" id="cell-10" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-11" id="cell-11" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-12" id="cell-12" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-20" id="cell-20" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-21" id="cell-21" onClick="sendMessage(this.id)"></div>
+        <div class="tile" name="cell-22" id="cell-22" onClick="sendMessage(this.id)"></div>
+    </section>
+    <section class="display announcer hide"></section>
+    <section class="controls">
+        <button id="reset">Reset</button>
+    </section>
+</main>
+  <!-- <div class="container text-center">
+    <div class="row">
+      <div class="col" name="cell-00" id="cell-00" onClick="sendMessage(this.id)">_</div>
+      <div class="col" name="cell-01" id="cell-01" onClick="sendMessage(this.id)">_</div>
+      <div class="col" name="cell-02" id="cell-02" onClick="sendMessage(this.id)">_</div>
+    </div>
+    <div class="row">
+      <div class="col" name="cell-10" id="cell-10" onClick="sendMessage(this.id)">_</div>
+      <div class="col" name="cell-11" id="cell-11" onClick="sendMessage(this.id)">_</div>
+      <div class="col" name="cell-12" id="cell-12" onClick="sendMessage(this.id)">_</div>
+    </div>
+    <div class="row">
+      <div class="col" name="cell-20" id="cell-20" onClick="sendMessage(this.id)">_</div>
+      <div class="col" name="cell-21" id="cell-21" onClick="sendMessage(this.id)">_</div>
+      <div class="col" name="cell-22" id="cell-22" onClick="sendMessage(this.id)">_</div>
+    </div>
+  </div> -->
+</div>
+<script type="text/javascript">
+  var socketio = io();
+  let namep = "", symbolp = "", chancep = 0;
+  namep = "{{session.get('name')}}"
+  symbolp = "{{session.get('symbol')}}"
+  chancep = "{{session.get('chance')}}"
+
+  const sendMessage = (id) => {
+    if(document.getElementById(id).innerHTML == "X" || document.getElementById(id).innerHTML == "O") {
+      return;
+    }
+    if(chancep == 0){
+      document.getElementById("turn").innerHTML = "Not Your Turn!"
+      return;
+    }
+    if(chancep == 1)
+    {
+      socketio.emit("message", { data: id, symbol: symbolp, chance: chancep});
+      document.getElementById("turn").innerHTML = ""
+    }
+  }
+
+  socketio.on("update", (msg) => {
+    if(msg.name == namep) {
+      symbolp = msg.symbol, chancep = msg.chance
+    }
+    decideWinner();
+  });
+
+  socketio.on("message", (data) => {
+    if(data.message == "") {
+      return;
+    }
+    chancep = 0
+    document.getElementById(data.message).innerHTML = data.symbol;
+    socketio.emit("update", {name: data.name, symbol: data.symbol, chance: chancep})
+  });
+
+  socketio.on("player", (data) => {
+    document.getElementById("turn").innerHTML = data.message;
+
+    if(data.message === "Waiting for player") {
+      
+    }
+
+    else if(data.message === "Two players joined") {
+
+    }
+  })
+
+  socketio.on("winner", (data) => {
+    if(data == "") return;
+
+    if(data.name == namep) {
+      document.getElementById("turn").innerHTML = "You Won!!"
+    } else {
+      document.getElementById("turn").innerHTML = "You Lose!!"
+    }
+  })
+
+  const decideWinner = () => {
+    //row wise check
+    for(let i=0;i<3;i++) {
+      let countX = 0, countO = 0;
+      for(let j=0;j<3;j++) {
+        if(document.getElementById("cell-"+i.toString()+j.toString()).innerHTML == "X") countX++;
+        if(document.getElementById("cell-"+i.toString()+j.toString()).innerHTML == "O") countO++;
+      }
+      if((countX == 3 && symbolp == "X") || (countO == 3 && symbolp == "O")) {
+        socketio.emit("winner", {name: namep})
+        return;
+      }
+    }
+
+    //column wise check
+    for(let i=0;i<3;i++) {
+      let countX = 0, countO = 0;
+      for(let j=0;j<3;j++) {
+        if(document.getElementById("cell-"+j.toString()+i.toString()).innerHTML == "X") countX++;
+        if(document.getElementById("cell-"+j.toString()+i.toString()).innerHTML == "O") countO++;
+      }
+      if((countX == 3 && symbolp == "X") || (countO == 3 && symbolp == "O")) {
+        socketio.emit("winner", {name: namep})
+        return;
+      }
+    }
+
+    //diagonal check
+    for(let i=0;i<3;i++) {
+      let countX = 0, countO = 0;
+      for(let j=0;j<3;j++) {
+        if(i == j) {
+          if(document.getElementById("cell-"+i.toString()+j.toString()).innerHTML == "X") countX++;
+          if(document.getElementById("cell-"+i.toString()+j.toString()).innerHTML == "O") countO++;
+        }
+      }
+      if((countX == 3 && symbolp == "X") || (countO == 3 && symbolp == "O")) {
+        socketio.emit("winner", {name: namep})
+        return;
+      }
+    }
+  }
+
+</script>
+
+{% for msg in messages %}
+<script type="text/javascript">
+  document.getElementById("{{msg.message}}").innerHTML = "{{msg.symbol}}";
+  if("{{msg.name}}" == namep) {
+    chancep = "{{msg.chance}}"
+  }
+  decideWinner()
+</script>
+{% endfor %}
+
+{% endblock %}
